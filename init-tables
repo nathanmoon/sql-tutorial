@@ -1,0 +1,18 @@
+#!/bin/bash
+
+export PGPASSFILE='./pgpass'
+export PGHOST=localhost
+export PGUSER=sqltut
+export PGDATABASE=sqltut
+
+psql <<EOF
+DROP TABLE IF EXISTS item, inventory, location;
+EOF
+
+psql -f def-item.sql
+psql -f def-location.sql
+psql -f def-inventory.sql
+
+psql -f pop-item.sql
+psql -f pop-location.sql
+psql -f pop-inventory.sql

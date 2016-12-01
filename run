@@ -1,0 +1,8 @@
+#!/bin/bash
+
+export PGPASSFILE='./pgpass'
+export PGHOST=localhost
+export PGUSER=sqltut
+export PGDATABASE=sqltut
+
+psql -e -f $1
