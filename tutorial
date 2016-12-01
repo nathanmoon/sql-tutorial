@@ -1,0 +1,101 @@
+#!/bin/bash
+
+echo "
+----------------
+| SQL Tutorial |
+----------------
+
+Welcome!
+
+===========================
+==    Part 1 - Intro     ==
+===========================
+
+First, let's get to know the schema we will be working with.
+
+We will do that by looking at the table data.
+
+
+"
+read -rn1 -p "Press any key to continue... (You can always press any key to move on during this tutorial)" ; echo
+
+PART1="items.sql locations.sql inventory.sql"
+
+for Q in $PART1
+do
+    ./run "queries/${Q}"
+    read -rsn1 ; echo; echo "-------------------------------------------------------------------------------------------------------------"
+done
+
+echo "
+
+=================================
+==    Part 2 - SELECT columns  ==
+=================================
+
+Here we will learn about what can be put in the 'SELECT' clause of a query.
+"
+
+read -rsn1 ; echo; echo "-------------------------------------------------------------------------------------------------------------"
+
+PART2="items-aliased.sql items-coalesced.sql"
+
+for Q in $PART2 
+do
+    ./run "queries/${Q}"
+    read -rsn1 ; echo; echo "-------------------------------------------------------------------------------------------------------------"
+done
+
+
+
+echo "
+=================================
+==    Part 3 - JOINs           ==
+=================================
+
+To understand JOINs, it's best to take off your imperative programming hat, and
+get ready to think very declaratively.  It will be tempting to try to think about
+HOW the data is being retrieved, but that is often confusing, and will lead you
+to try to do sub-selects instead of joins.
+
+At first, it's best to just trust that the database can do magic, and just think
+about what data you need to get back, and not about how it will happen.
+
+Everything is tables in the database world.  When a SELECT statement is executed
+the database is creating a new table, and returning that table to you.  You are in
+control of what that table looks like.
+
+"
+
+read -rsn1 ; echo; echo "-------------------------------------------------------------------------------------------------------------"
+
+PART3="inventory-joined.sql inventory-friendly.sql"
+
+for Q in $PART3 
+do
+    ./run "queries/${Q}"
+    read -rsn1 ; echo; echo "-------------------------------------------------------------------------------------------------------------"
+done
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+echo "
+
+That's all for now!
+"
+read -rsn1 ; echo; echo

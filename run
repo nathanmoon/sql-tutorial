@@ -5,4 +5,4 @@ export PGHOST=localhost
 export PGUSER=sqltut
 export PGDATABASE=sqltut
 
-psql -e -f $1
+psql -P pager=off -e -f $1
