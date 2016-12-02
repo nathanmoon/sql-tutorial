@@ -1,58 +1,96 @@
-#!/bin/bash
+#!/usr/bin/env python
 
-echo "
-----------------
-| SQL Tutorial |
-----------------
+import curses
+import os
+import subprocess
 
-Welcome!
+from curses import textpad
+from subprocess import CalledProcessError
 
-===========================
-==    Part 1 - Intro     ==
-===========================
+ITEM_TYPE_HEADER = 'header'
+ITEM_TYPE_TEXT = 'text'
+ITEM_TYPE_SQL = 'sql'
 
+def header(value):
+    return { 'type' : ITEM_TYPE_HEADER, 'value' : value, }
+
+def text(value):
+    return { 'type' : ITEM_TYPE_TEXT, 'value' : value, }
+
+def sql(name):
+    return { 'type' : ITEM_TYPE_SQL, 'value' : name, }
+
+TUTORIAL = [
+    # sections:
+    [
+        # pages:
+        [
+            # items:
+            header('How To'),
+            text('''
+Welcome to this SQL Tutorial.  You can navigate the pages of this tutorial
+at your own speed.  The basic navigation commands are the following keys:
+
+ * 'q' : quits the tutorial
+ * 'n' : moves to the next page
+ * 'p' : moves to the previous page
+
+Most of the pages are displaying actual SQL commands, and running them.  The
+results are displayed inline.  All the SQL commands that appear in this
+tutorial are from files in the queries/ directory.  The all are named 'tut-*'.
+
+On any page you can use these commands to go into an edit mode that will let
+you write your own SQL to execute.
+
+ * 'b' : starts up the editor in a blank state
+ * 'e' : starts up the editor with the SQL from the current page, for editing
+
+You can write or edit SQL (multiple statements is fine), and when you are
+finished, use Ctrl-G to exit the editor.  The contents of the editor will be
+executed, and the results displayed. The editor is really horrible, but it is
+what python provides by default.  There is a bug with insert mode for the
+editor, so it has to be in overwrite mode, which makes it nearly useless for
+editing the existing sql.  :shrug:
+
+While in edit mode, you have the following commands available:
+
+ * 'b' : starts up the editor again in a blank state
+ * 'e' : starts up the editor with the latest version of your SQL
+ * 'r' : starts up the editor with the SQL from the current page again
+ * 'd' : exits the edit mode and puts you back on the current page
+
+Once you are familiar with the commands, you can use 's' to change the prompt to
+a more succinct mode.  'v' will go back to the regular prompt
+                 '''),
+        ],
+    ],
+    [
+        [
+            header('Intro - Tables and Data'),
+            text('''
 First, let's get to know the schema we will be working with.
 
 We will do that by looking at the table data.
-
-
-"
-read -rn1 -p "Press any key to continue... (You can always press any key to move on during this tutorial)" ; echo
-
-PART1="items.sql locations.sql inventory.sql"
-
-for Q in $PART1
-do
-    ./run "queries/${Q}"
-    read -rsn1 ; echo; echo "-------------------------------------------------------------------------------------------------------------"
-done
-
-echo "
-
-=================================
-==    Part 2 - SELECT columns  ==
-=================================
-
+                 '''),
+        ],
+        [ sql('tut-items'), ],
+        [ sql('tut-locations'), ],
+        [ sql('tut-inventory'), ],
+    ],
+    [
+        [
+            header('SELECT - specifying columns'),
+            text('''
 Here we will learn about what can be put in the 'SELECT' clause of a query.
-"
-
-read -rsn1 ; echo; echo "-------------------------------------------------------------------------------------------------------------"
-
-PART2="items-aliased.sql items-coalesced.sql"
-
-for Q in $PART2 
-do
-    ./run "queries/${Q}"
-    read -rsn1 ; echo; echo "-------------------------------------------------------------------------------------------------------------"
-done
-
-
-
-echo "
-=================================
-==    Part 3 - JOINs           ==
-=================================
-
+                 '''),
+        ],
+        [ sql('tut-items-aliased'), ],
+        [ sql('tut-items-coalesced'), ],
+    ],
+    [
+        [
+            header('Basic JOINs'),
+            text('''
 To understand JOINs, it's best to take off your imperative programming hat, and
 get ready to think very declaratively.  It will be tempting to try to think about
 HOW the data is being retrieved, but that is often confusing, and will lead you
@@ -64,38 +102,235 @@ about what data you need to get back, and not about how it will happen.
 Everything is tables in the database world.  When a SELECT statement is executed
 the database is creating a new table, and returning that table to you.  You are in
 control of what that table looks like.
-
-"
-
-read -rsn1 ; echo; echo "-------------------------------------------------------------------------------------------------------------"
-
-PART3="inventory-joined.sql inventory-friendly.sql"
-
-for Q in $PART3 
-do
-    ./run "queries/${Q}"
-    read -rsn1 ; echo; echo "-------------------------------------------------------------------------------------------------------------"
-done
-
-
-
-
-
-
-
-
-
-
-
-
-
+                 '''),
+        ],
+        [ sql('tut-inventory-raw-join'), ],
+        [ sql('tut-inventory-friendly-join'), ],
+    ],
+    [
+        [
+            header('AGGREGATES'),
+            text('''
+                 '''),
+        ],
+        [ sql('tut-inventory-aggregate'), ],
+    ],
+    [
+        [
+            header('OUTER JOINs'),
+            text('''
+                 '''),
+        ],
+        [ sql('tut-item-inventory'), ],
+        [ sql('tut-item-inventory-outer'), ],
+    ],
+]
 
 
+NORMAL_MODE = 1
+EDIT_MODE = 2
+
+VERBOSE = 1
+SUCCINCT = 2
+input_mode = {
+    NORMAL_MODE: VERBOSE,
+    EDIT_MODE: VERBOSE,
+};
+PROMPT = {
+    VERBOSE: {
+        NORMAL_MODE: '''Type a letter to enter a command:
+(q)uit, (n)ext, (p)revious, (e)dit sql, (b)lank sql editor, (s)uccinct prompt
+>> ''',
+        EDIT_MODE: '''Type a letter to enter a command:
+(d)one (e)dit again (r)eset editor (b)lank editor (s)uccinct prompt
+>> ''',
+    },
+    SUCCINCT: {
+        NORMAL_MODE: '''q,n,p,v >> ''',
+        EDIT_MODE: '''d,e,s,b,v >> ''',
+    }
+}
+def get_next_action(mode, screen):
+    screen.addstr('''
+--------------------------------------------------------------------------------
+{}'''.format(PROMPT[input_mode[mode]][mode]))
+    command = screen.getch()
+    return command
+
+def display_position(position, screen):
+    if position == END_POSITION:
+        screen.addstr('Finished!')
+    else:
+        section, page = position
+        screen.addstr('''Section: {}, Page: {}
+--------------------------------------------------------------------------------
+'''.format(section+1, page+1))
+
+def get_items(position):
+    section, page = position
+    return TUTORIAL[section][page]
+
+def get_query_filename(name):
+    return 'queries/{}.sql'.format(name)
+
+def display(position_or_text, screen):
+    screen.clear()
+    if isinstance(position_or_text, basestring):
+        display_item(text(position_or_text), screen)
+    else:
+        display_position(position_or_text, screen)
+
+        if position_or_text != END_POSITION:
+            for item in get_items(position_or_text):
+                display_item(item, screen)
+
+def display_item(item, screen):
+    value = item['value']
+    if item['type'] == ITEM_TYPE_HEADER:
+        screen.addstr('''
+================================================================================
+    {}
+================================================================================
+'''.format(value))
+    elif item['type'] == ITEM_TYPE_TEXT:
+        screen.addstr(value)
+    elif item['type'] == ITEM_TYPE_SQL:
+        filename = get_query_filename(value)
+        try:
+            output = subprocess.check_output([
+                'psql',
+                '-P',
+                'pager=off',
+                '-e',
+                '-f',
+                filename,
+            ], env=dict(os.environ,
+                        PGPASSFILE='./pgpass',
+                        PGHOST='localhost',
+                        PGUSER='sqltut',
+                        PGDATABASE='sqltut'),
+                stderr=subprocess.STDOUT)
+        except CalledProcessError as e:
+            output = '''
+ERROR: Exit code {}
+
+{}'''.format(e.returncode, e.output)
+        except Exception as e:
+            output = '''
+ERROR: {}
+'''.format(e)
+
+        screen.addstr(output)
+
+def execute_raw_sql(sql):
+    p = subprocess.Popen([
+        'psql',
+        '-P',
+        'pager=off',
+        '-e',
+    ], env=dict(os.environ,
+                PGPASSFILE='./pgpass',
+                PGHOST='localhost',
+                PGUSER='sqltut',
+                PGDATABASE='sqltut'),
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stdin=subprocess.PIPE,
+        universal_newlines=True
+    )
+    out, err = p.communicate(input=sql)
+    return err or out
 
 
 
-echo "
+def create_position(section, page):
+    assert section >= 0 and section < len(TUTORIAL)
+    assert page >= 0 and page < len(TUTORIAL[section])
+    return (section, page)
 
-That's all for now!
-"
-read -rsn1 ; echo; echo
+END_POSITION = (-1, -1)
+INITIAL_POSITION = (0, 0)
+
+def next_position(position):
+    if position == END_POSITION:
+        return position # next has nowhere to go
+    section, page = position
+    if len(TUTORIAL[section]) > page+1:
+        return create_position(section, page+1)
+    else:
+        if len(TUTORIAL) > section+1:
+            return create_position(section+1, 0)
+        else:
+            return END_POSITION
+
+def prev_position(position):
+    if position == INITIAL_POSITION:
+        return position # prev has nowhere to go
+    if position == END_POSITION:
+        return create_position(len(TUTORIAL)-1, len(TUTORIAL[-1])-1)
+    section, page = position
+    if page > 0:
+        return create_position(section, page-1)
+    else:
+        # section must be > 0 here
+        return create_position(section-1, len(TUTORIAL[section-1])-1)
+
+def do_edit(position_or_text, screen):
+    sql = ''
+    if position_or_text:
+        if isinstance(position_or_text, basestring):
+            sql = position_or_text
+        else:
+            items = get_items(position_or_text)
+            items = [i for i in items if i['type'] == ITEM_TYPE_SQL]
+            for item in items:
+                with open(get_query_filename(item['value']), 'r') as f:
+                    sql += f.read()
+                    sql += '\n'
+    #editor = curses.newwin(10, 60)
+    editor = screen
+    display(sql, editor)
+    box = textpad.Textbox(editor)
+    box.edit()
+    sql = box.gather()
+    output = execute_raw_sql(sql)
+    return output, sql
+
+def run_tutorial(screen):
+    action = None
+    current_position = INITIAL_POSITION
+    output_text = None # kind of an override
+    editor_text = None
+    current_mode = NORMAL_MODE
+    while True:
+        display(output_text or current_position, screen)
+        action = get_next_action(current_mode, screen)
+        if action == ord('q'):
+            return
+        elif action == ord('b'):
+            current_mode = EDIT_MODE
+            output_text, editor_text = do_edit(None, screen)
+        elif action == ord('v'):
+            input_mode = VERBVOSE
+        elif action == ord('s'):
+            input_mode = SUCCINCT
+        elif current_mode == NORMAL_MODE:
+            if action == ord('n'):
+                current_position = next_position(current_position)
+            elif action == ord('p'):
+                current_position = prev_position(current_position)
+            elif action == ord('e'):
+                current_mode = EDIT_MODE
+                output_text, editor_text = do_edit(current_position, screen)
+        elif current_mode == EDIT_MODE:
+            if action == ord('d'):
+                current_mode = NORMAL_MODE
+                output_text = None
+                editor_text = None
+            elif action == ord('e'):
+                output_text, editor_text = do_edit(editor_text, screen)
+            elif action == ord('r'):
+                output_text, editor_text = do_edit(current_position, screen)
+
+
+curses.wrapper(run_tutorial)
