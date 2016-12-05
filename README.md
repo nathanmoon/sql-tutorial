@@ -11,6 +11,17 @@ To create a user and database in Postgres, run:
 ```
 Postgresql must be installed.  Also, make sure local connections with passwords are supported.
 
+e.g. on ubuntu:
+```bash
+sudo apt-get install postgresql postgresql-contrib
+```
+
+And if you trust me (you'll need to determine your postgres version and insert it where I have "9.3"):
+```bash
+echo "host    all             all             localhost               md5" | sudo tee -a /etc/postgresql/9.3/main/pg_hba.conf
+sudo service postgresql reload
+```
+
 Run this any time you want to populate data in the database, or re-populate:
 ```bash
 ./init-tables
@@ -22,4 +33,8 @@ To run a query in the `queries` directory, use the `run` script:
 ./run queries/locations.sql
 ```
 
+## Running the interactive tutorial
+```bash
+./tutorial
+```
 

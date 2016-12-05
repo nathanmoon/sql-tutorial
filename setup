@@ -5,4 +5,4 @@ CREATE ROLE sqltut LOGIN PASSWORD 'sqltut';
 CREATE DATABASE sqltut OWNER sqltut;
 EOF
 
-echo "Make sure your pg_hba.conf allows localhost password authentication. Test by making sure 'psql -U sqltut -d sqltut' asks for a password, accepts the password 'sqltut', and allows you to connect"
+echo "Make sure your pg_hba.conf allows localhost password authentication. Test by making sure 'psql -U sqltut -d sqltut -h localhost' asks for a password, accepts the password 'sqltut', and allows you to connect"
