@@ -76,6 +76,7 @@ We will do that by looking at the table data.
         [ sql('tut-items'), ],
         [ sql('tut-locations'), ],
         [ sql('tut-inventory'), ],
+        [ sql('tut-reviews'), ],
     ],
     [
         [
@@ -86,6 +87,7 @@ Here we will learn about what can be put in the 'SELECT' clause of a query.
         ],
         [ sql('tut-items-aliased'), ],
         [ sql('tut-items-coalesced'), ],
+        [ sql('tut-items-distinct'), ],
     ],
     [
         [
@@ -111,6 +113,11 @@ control of what that table looks like.
         [
             header('AGGREGATES'),
             text('''
+Aggregates are functions that act on multiple values.  You use aggregates by
+gouping the data in the table into a potentially smaller number of rows.  So
+aggregates always go with a GROUP BY clause.  GROUP BY comes after the WHERE
+clause, and specifies columns that should be used to determine how to combine
+the rows.  GROUP BY and DISTINCT are similar in a lot of ways.
                  '''),
         ],
         [ sql('tut-inventory-aggregate'), ],
@@ -119,35 +126,67 @@ control of what that table looks like.
         [
             header('OUTER JOINs'),
             text('''
+Whereas a normal (INNER) JOIN is directionless (the order of the joins is
+unimportant), OUTER JOIN cares about the order.  OUTER JOIN is shorthad for
+LEFT OUTER JOIN, meaning the table on the left is the base.  There is a RIGHT
+OUTER JOIN as well, but I have honestly never used it in real life.  I thought
+I had a legitimate reason to use it once, but then discovered I could rewrite
+the query with a LEFT OUTER JOIN and it was actually more readable, I think.
                  '''),
         ],
         [ sql('tut-item-inventory'), ],
         [ sql('tut-item-inventory-outer'), ],
+        [ sql('tut-item-inventory-outer-steps'), ],
+        [ sql('tut-item-inventory-outer-and'), ],
+    ],
+    [
+        [
+            header('HAVING'),
+            text('''
+HAVING will filter results after grouping, allowing filtering based on aggregates
+                 '''),
+        ],
+        [ sql('tut-review-having'), ],
+    ],
+    [
+        [
+            header('Tips and Tricks'),
+            text('''
+Random examples showing different aspects of SQL
+                 '''),
+        ],
+        [ sql('tut-tip-count-outer'), ],
     ],
 ]
 
 
 NORMAL_MODE = 1
 EDIT_MODE = 2
+JUMP_MODE = 3
 
 VERBOSE = 1
 SUCCINCT = 2
 input_mode = {
     NORMAL_MODE: VERBOSE,
     EDIT_MODE: VERBOSE,
+    JUMP_MODE: VERBOSE,
 };
 PROMPT = {
     VERBOSE: {
         NORMAL_MODE: '''Type a letter to enter a command:
-(q)uit, (n)ext, (p)revious, (e)dit sql, (b)lank sql editor, (s)uccinct prompt
+(q)uit, (n)ext, (p)revious, (e)dit sql, (b)lank sql editor, (j)ump to section, (s)uccinct prompt
 >> ''',
         EDIT_MODE: '''Type a letter to enter a command:
-(d)one (e)dit again (r)eset editor (b)lank editor (s)uccinct prompt
+(d)one, (e)dit again, (r)eset editor, (b)lank editor, (s)uccinct prompt
+>> ''',
+        JUMP_MODE: '''Type a letter to enter a command:
+(c)ancel, (N) jump to section, (s)uccinct prompt
 >> ''',
     },
     SUCCINCT: {
-        NORMAL_MODE: '''q,n,p,v >> ''',
-        EDIT_MODE: '''d,e,s,b,v >> ''',
+        NORMAL_MODE: '''q,n,p,e,b,j,v >> ''',
+        EDIT_MODE: '''d,e,r,b,v >> ''',
+        JUMP_MODE: '''c,N,v >> ''',
     }
 }
 def get_next_action(mode, screen):
@@ -173,9 +212,17 @@ def get_items(position):
 def get_query_filename(name):
     return 'queries/{}.sql'.format(name)
 
+try:
+    basestring  # attempt to evaluate basestring
+    def isstr(s):
+        return isinstance(s, basestring)
+except NameError:
+    def isstr(s):
+        return isinstance(s, str)
+
 def display(position_or_text, screen):
     screen.clear()
-    if isinstance(position_or_text, basestring):
+    if isstr(position_or_text):
         display_item(text(position_or_text), screen)
     else:
         display_position(position_or_text, screen)
@@ -242,6 +289,16 @@ def execute_raw_sql(sql):
     return err or out
 
 
+def get_table_of_contents():
+    toc = 'Choose a section:\n\n'
+    for index, section in enumerate(TUTORIAL):
+        page = section[0]
+        headers = [i for i in page if i['type'] == ITEM_TYPE_HEADER]
+        header = headers[0]['value'] if len(headers) > 0 else '???'
+        toc += '{} - {}\n'.format(index+1, header)
+    return toc
+
+
 
 def create_position(section, page):
     assert section >= 0 and section < len(TUTORIAL)
@@ -278,7 +335,7 @@ def prev_position(position):
 def do_edit(position_or_text, screen):
     sql = ''
     if position_or_text:
-        if isinstance(position_or_text, basestring):
+        if isstr(position_or_text):
             sql = position_or_text
         else:
             items = get_items(position_or_text)
@@ -311,9 +368,9 @@ def run_tutorial(screen):
             current_mode = EDIT_MODE
             output_text, editor_text = do_edit(None, screen)
         elif action == ord('v'):
-            input_mode = VERBVOSE
+            input_mode[current_mode] = VERBOSE
         elif action == ord('s'):
-            input_mode = SUCCINCT
+            input_mode[current_mode] = SUCCINCT
         elif current_mode == NORMAL_MODE:
             if action == ord('n'):
                 current_position = next_position(current_position)
@@ -322,6 +379,9 @@ def run_tutorial(screen):
             elif action == ord('e'):
                 current_mode = EDIT_MODE
                 output_text, editor_text = do_edit(current_position, screen)
+            elif action == ord('j'):
+                current_mode = JUMP_MODE
+                output_text = get_table_of_contents()
         elif current_mode == EDIT_MODE:
             if action == ord('d'):
                 current_mode = NORMAL_MODE
@@ -331,6 +391,23 @@ def run_tutorial(screen):
                 output_text, editor_text = do_edit(editor_text, screen)
             elif action == ord('r'):
                 output_text, editor_text = do_edit(current_position, screen)
+        elif current_mode == JUMP_MODE:
+            if action == ord('c'):
+                current_mode = NORMAL_MODE
+                output_text = None
+                editor_text = None
+            else:
+                try:
+                    section = int(chr(action))
+                    if section > 0 and section <= len(TUTORIAL):
+                        current_position = create_position(section-1, 0)
+                        current_mode = NORMAL_MODE
+                        output_text = None
+                        editor_text = None
+                    else:
+                        output_text = '{} - {}'.format(action, chr(section))
+                except ValueError:
+                    output_text = 'oops'
 
 
 curses.wrapper(run_tutorial)

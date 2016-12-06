@@ -12,6 +12,7 @@ each location.
 SELECT l.name, inv.quantity, inv.price
 FROM location l
 LEFT OUTER JOIN inventory inv ON inv.location_id = l.id AND inv.item_id = 2
+;
 /*
 What is going on here will be explained in the next step.
 */

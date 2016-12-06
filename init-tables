@@ -6,13 +6,15 @@ export PGUSER=sqltut
 export PGDATABASE=sqltut
 
 psql <<EOF
-DROP TABLE IF EXISTS item, inventory, location;
+DROP TABLE IF EXISTS review, item, inventory, location;
 EOF
 
 psql -f def-item.sql
 psql -f def-location.sql
 psql -f def-inventory.sql
+psql -f def-review.sql
 
 psql -f pop-item.sql
 psql -f pop-location.sql
 psql -f pop-inventory.sql
+psql -f pop-review.sql

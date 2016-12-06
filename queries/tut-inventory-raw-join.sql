@@ -21,6 +21,17 @@ one row for each row in the inventory table.
 Notice that there are multiple columns named 'id', one for each joined table.  The database
 is not trying to do any thinking for you, it just mashes the tables together just like you
 told it to.  The next example shows how to wrangle this raw table into something more useful.
+
+JOIN is shorthand for INNER JOIN, and inner joins are order independent.
 */
 
+SELECT *
+FROM item it
+INNER JOIN inventory inv ON inv.item_id = it.id
+INNER JOIN location l ON inv.location_id = l.id
+;
+
+/*
+Notice that the table is essentially identical, just the ordering of the columns is different.
+*/
 
