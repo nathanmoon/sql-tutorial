@@ -7,6 +7,8 @@ import subprocess
 from curses import textpad
 from subprocess import CalledProcessError
 
+global curses_screen
+
 ITEM_TYPE_HEADER = 'header'
 ITEM_TYPE_TEXT = 'text'
 ITEM_TYPE_SQL = 'sql'
@@ -39,28 +41,6 @@ at your own speed.  The basic navigation commands are the following keys:
 Most of the pages are displaying actual SQL commands, and running them.  The
 results are displayed inline.  All the SQL commands that appear in this
 tutorial are from files in the queries/ directory.  The all are named 'tut-*'.
-
-On any page you can use these commands to go into an edit mode that will let
-you write your own SQL to execute.
-
- * 'b' : starts up the editor in a blank state
- * 'e' : starts up the editor with the SQL from the current page, for editing
-
-You can write or edit SQL (multiple statements is fine), and when you are
-finished, use Ctrl-G to exit the editor.  The contents of the editor will be
-executed, and the results displayed. The editor is really horrible, but it is
-what python provides by default.  There is a bug with insert mode for the
-editor, so it has to be in overwrite mode, which makes it nearly useless for
-editing the existing sql.  :shrug:  It may be better to just have an editor
-open with a file in the queries directory, and another terminal where you can
-repeatedly './run' your file and see the results.
-
-While in edit mode, you have the following commands available:
-
- * 'b' : starts up the editor again in a blank state
- * 'e' : starts up the editor with the latest version of your SQL
- * 'r' : starts up the editor with the SQL from the current page again
- * 'd' : exits the edit mode and puts you back on the current page
 
 Once you are familiar with the commands, you can use 's' to change the prompt to
 a more succinct mode.  'v' will go back to the regular prompt
@@ -192,7 +172,7 @@ input_mode = {
 PROMPT = {
     VERBOSE: {
         NORMAL_MODE: '''Type a letter to enter a command:
-(q)uit, (n)ext, (p)revious, (e)dit sql, (b)lank sql editor, (j)ump to section, (s)uccinct prompt
+(q)uit, (n)ext, (p)revious, (j)ump to section, (s)uccinct prompt
 >> ''',
         EDIT_MODE: '''Type a letter to enter a command:
 (d)one, (e)dit again, (r)eset editor, (b)lank editor, (s)uccinct prompt
@@ -207,19 +187,19 @@ PROMPT = {
         JUMP_MODE: '''c,N,v >> ''',
     }
 }
-def get_next_action(mode, screen):
-    screen.addstr('''
+def get_next_action(mode):
+    print_to_screen('''
 --------------------------------------------------------------------------------
 {}'''.format(PROMPT[input_mode[mode]][mode]))
-    command = screen.getch()
+    command = get_character()
     return command
 
-def display_position(position, screen):
+def display_position(position):
     if position == END_POSITION:
-        screen.addstr('Finished!')
+        print_to_screen('Finished!')
     else:
         section, page = position
-        screen.addstr('''Section: {}, Page: {}
+        print_to_screen('''Section: {}, Page: {}
 --------------------------------------------------------------------------------
 '''.format(section+1, page+1))
 
@@ -238,27 +218,79 @@ except NameError:
     def isstr(s):
         return isinstance(s, str)
 
-def display(position_or_text, screen):
-    screen.clear()
+####################
+# getch based on http://stackoverflow.com/questions/510357/python-read-a-single-character-from-the-user
+def getch():
+    try:
+        return getch_win()
+    except ImportError:
+        return getch_nix()
+
+def getch_win():
+    import msvcrt
+    return msvcrt.getch()
+
+def getch_nix():
+    import sys, tty, termios
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setraw(sys.stdin.fileno())
+        ch = sys.stdin.read(1)
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+    return ch
+
+# end getch
+##########################
+
+##########################
+# screen interface
+def get_character():
+    #global curses_screen
+    #return curses_screen.getch()
+    return getch()
+
+def clear_screen():
+    #global curses_screen
+    #curses_screen.clear()
+    print '''
+================================================================================
+\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n
+================================================================================
+'''
+    import os
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def print_to_screen(text):
+    #global curses_screen
+    #curses_screen.addstr(text)
+    print text
+
+# end screen interface
+##########################
+
+def display(position_or_text):
+    clear_screen()
     if isstr(position_or_text):
-        display_item(text(position_or_text), screen)
+        display_item(text(position_or_text))
     else:
-        display_position(position_or_text, screen)
+        display_position(position_or_text)
 
         if position_or_text != END_POSITION:
             for item in get_items(position_or_text):
-                display_item(item, screen)
+                display_item(item)
 
-def display_item(item, screen):
+def display_item(item):
     value = item['value']
     if item['type'] == ITEM_TYPE_HEADER:
-        screen.addstr('''
+        print_to_screen('''
 ================================================================================
     {}
 ================================================================================
 '''.format(value))
     elif item['type'] == ITEM_TYPE_TEXT:
-        screen.addstr(value)
+        print_to_screen(value)
     elif item['type'] == ITEM_TYPE_SQL:
         filename = get_query_filename(value)
         try:
@@ -285,7 +317,7 @@ ERROR: Exit code {}
 ERROR: {}
 '''.format(e)
 
-        screen.addstr(output)
+        print_to_screen(output)
 
 def execute_raw_sql(sql):
     p = subprocess.Popen([
@@ -350,7 +382,8 @@ def prev_position(position):
         # section must be > 0 here
         return create_position(section-1, len(TUTORIAL[section-1])-1)
 
-def do_edit(position_or_text, screen):
+def do_edit(position_or_text):
+    global curses_screen
     sql = ''
     if position_or_text:
         if isstr(position_or_text):
@@ -362,8 +395,7 @@ def do_edit(position_or_text, screen):
                 with open(get_query_filename(item['value']), 'r') as f:
                     sql += f.read()
                     sql += '\n'
-    #editor = curses.newwin(10, 60)
-    editor = screen
+    editor = curses_screen
     display(sql, editor)
     box = textpad.Textbox(editor)
     box.edit()
@@ -372,51 +404,56 @@ def do_edit(position_or_text, screen):
     return output, sql
 
 def run_tutorial(screen):
+    global curses_screen
+    curses_screen = screen
     action = None
     current_position = INITIAL_POSITION
     output_text = None # kind of an override
     editor_text = None
     current_mode = NORMAL_MODE
     while True:
-        display(output_text or current_position, screen)
-        action = get_next_action(current_mode, screen)
-        if action == ord('q'):
+        display(output_text or current_position)
+        action = get_next_action(current_mode)
+        if action == ord('q') or action == 'q':
             return
-        elif action == ord('b'):
-            current_mode = EDIT_MODE
-            output_text, editor_text = do_edit(None, screen)
-        elif action == ord('v'):
+        #elif action == ord('b'):
+        #    current_mode = EDIT_MODE
+        #    output_text, editor_text = do_edit(None, screen)
+        elif action == ord('v') or action == 'v':
             input_mode[current_mode] = VERBOSE
-        elif action == ord('s'):
+        elif action == ord('s') or action == 's':
             input_mode[current_mode] = SUCCINCT
         elif current_mode == NORMAL_MODE:
-            if action == ord('n'):
+            if action == ord('n') or action == 'n':
                 current_position = next_position(current_position)
-            elif action == ord('p'):
+            elif action == ord('p') or action == 'p':
                 current_position = prev_position(current_position)
-            elif action == ord('e'):
-                current_mode = EDIT_MODE
-                output_text, editor_text = do_edit(current_position, screen)
-            elif action == ord('j'):
+            #elif action == ord('e'):
+            #    current_mode = EDIT_MODE
+            #    output_text, editor_text = do_edit(current_position, screen)
+            elif action == ord('j') or action == 'j':
                 current_mode = JUMP_MODE
                 output_text = get_table_of_contents()
-        elif current_mode == EDIT_MODE:
-            if action == ord('d'):
-                current_mode = NORMAL_MODE
-                output_text = None
-                editor_text = None
-            elif action == ord('e'):
-                output_text, editor_text = do_edit(editor_text, screen)
-            elif action == ord('r'):
-                output_text, editor_text = do_edit(current_position, screen)
+        #elif current_mode == EDIT_MODE:
+        #    if action == ord('d'):
+        #        current_mode = NORMAL_MODE
+        #        output_text = None
+        #        editor_text = None
+        #    elif action == ord('e'):
+        #        output_text, editor_text = do_edit(editor_text, screen)
+        #    elif action == ord('r'):
+        #        output_text, editor_text = do_edit(current_position, screen)
         elif current_mode == JUMP_MODE:
-            if action == ord('c'):
+            if action == ord('c') or action == 'c':
                 current_mode = NORMAL_MODE
                 output_text = None
                 editor_text = None
             else:
                 try:
-                    section = int(chr(action))
+                    try:
+                        section = int(chr(action))
+                    except TypeError:
+                        section = int(action)
                     if section > 0 and section <= len(TUTORIAL):
                         current_position = create_position(section-1, 0)
                         current_mode = NORMAL_MODE
@@ -428,4 +465,5 @@ def run_tutorial(screen):
                     output_text = 'oops'
 
 
-curses.wrapper(run_tutorial)
+#curses.wrapper(run_tutorial)
+run_tutorial(None)
