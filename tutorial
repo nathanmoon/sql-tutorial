@@ -34,6 +34,7 @@ at your own speed.  The basic navigation commands are the following keys:
  * 'q' : quits the tutorial
  * 'n' : moves to the next page
  * 'p' : moves to the previous page
+ * 'j' : jump to section
 
 Most of the pages are displaying actual SQL commands, and running them.  The
 results are displayed inline.  All the SQL commands that appear in this
@@ -50,7 +51,9 @@ finished, use Ctrl-G to exit the editor.  The contents of the editor will be
 executed, and the results displayed. The editor is really horrible, but it is
 what python provides by default.  There is a bug with insert mode for the
 editor, so it has to be in overwrite mode, which makes it nearly useless for
-editing the existing sql.  :shrug:
+editing the existing sql.  :shrug:  It may be better to just have an editor
+open with a file in the queries directory, and another terminal where you can
+repeatedly './run' your file and see the results.
 
 While in edit mode, you have the following commands available:
 
@@ -147,6 +150,21 @@ HAVING will filter results after grouping, allowing filtering based on aggregate
                  '''),
         ],
         [ sql('tut-review-having'), ],
+    ],
+    [
+        [
+            header('Order of operations'),
+            text('''
+It's important to understand the order of operations for a query.  We will walk
+through the process of creating a query that finds items that have had low
+reviews from multiple locations.
+                 '''),
+        ],
+        [ sql('tut-op-order-view'), ],
+        [ sql('tut-op-order-where'), ],
+        [ sql('tut-op-order-agg'), ],
+        [ sql('tut-op-order-having'), ],
+        [ sql('tut-op-order-report'), ],
     ],
     [
         [
