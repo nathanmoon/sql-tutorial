@@ -1,7 +1,7 @@
 /*
 First, let's see what happens with a simple OUTER JOIN, from location to inventory
 */
-SELECT l.name, inv.quantity, inv.price
+SELECT l.name, inv.item_id, inv.quantity, inv.price
 FROM location l
 LEFT OUTER JOIN inventory inv ON inv.location_id = l.id
 ;

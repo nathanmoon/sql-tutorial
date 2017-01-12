@@ -104,6 +104,8 @@ the rows.  GROUP BY and DISTINCT are similar in a lot of ways.
                  '''),
         ],
         [ sql('tut-inventory-aggregate'), ],
+        [ sql('tut-aggregate-mistake'), ],
+        [ sql('tut-aggregate-mistake-raw'), ],
     ],
     [
         [
