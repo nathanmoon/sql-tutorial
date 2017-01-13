@@ -1,0 +1,10 @@
+#!/bin/bash
+
+psql -d postgres <<EOF
+CREATE ROLE sqltut LOGIN PASSWORD 'sqltut';
+CREATE DATABASE sqltut OWNER sqltut;
+EOF
+
+chmod 600 ./pgpass
+
+echo "Make sure your pg_hba.conf allows localhost password authentication. Test by making sure 'psql -U sqltut -d sqltut -h localhost' asks for a password, accepts the password 'sqltut', and allows you to connect"

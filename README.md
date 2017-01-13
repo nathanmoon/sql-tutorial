@@ -7,8 +7,13 @@ to use, but it's not teaching you to use a database that's able to handle anythi
 ## Setup
 To create a user and database in Postgres, run:
 ```bash
-./setup
+./setup-ubuntu
 ```
+or
+```bash
+./setup-mac
+```
+
 Postgresql must be installed.  Also, make sure local connections with passwords are supported.
 
 e.g. on ubuntu:
@@ -21,6 +26,10 @@ And if you trust me (you'll need to determine your postgres version and insert i
 echo "host    all             all             localhost               md5" | sudo tee -a /etc/postgresql/9.3/main/pg_hba.conf
 sudo service postgresql reload
 ```
+
+or on Mac:
+
+install postgres with homebrew or from postgresapp.com
 
 Run this any time you want to populate data in the database, or re-populate:
 ```bash
