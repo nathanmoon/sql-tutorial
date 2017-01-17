@@ -1,5 +1,5 @@
 CREATE TABLE review (
-    id INTEGER PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     item_id  INTEGER NOT NULL REFERENCES item(id),
     location_id INTEGER NOT NULL REFERENCES location(id),
     text TEXT NULL,

@@ -150,6 +150,20 @@ reviews from multiple locations.
     ],
     [
         [
+            header('DML'),
+            text('''
+Data Manipulation Language covers insert, update, delete.  It also includes
+select as well, strictly speaking, but often when you hear DML it's referring
+just to insert/update/delete.
+                 '''),
+        ],
+        [ sql('tut-insert-values'), ],
+        [ sql('tut-insert-select'), ],
+        [ sql('tut-update-join'), ],
+        [ sql('tut-delete-join'), ],
+    ],
+    [
+        [
             header('Tips and Tricks'),
             text('''
 Random examples showing different aspects of SQL
@@ -190,9 +204,9 @@ PROMPT = {
     }
 }
 def get_next_action(mode):
-    print_to_screen('''
+    print_to_screen(colorize_nav('''
 --------------------------------------------------------------------------------
-{}'''.format(PROMPT[input_mode[mode]][mode]))
+{}'''.format(PROMPT[input_mode[mode]][mode])))
     command = get_character()
     return command
 
@@ -201,9 +215,9 @@ def display_position(position):
         print_to_screen('Finished!')
     else:
         section, page = position
-        print_to_screen('''Section: {}, Page: {}
+        print_to_screen(colorize_nav('''Section: {}, Page: {}
 --------------------------------------------------------------------------------
-'''.format(section+1, page+1))
+'''.format(section+1, page+1)))
 
 def get_items(position):
     section, page = position
@@ -286,11 +300,11 @@ def display(position_or_text):
 def display_item(item):
     value = item['value']
     if item['type'] == ITEM_TYPE_HEADER:
-        print_to_screen('''
+        print_to_screen(colorize_header('''
 ================================================================================
     {}
 ================================================================================
-'''.format(value))
+'''.format(value)))
     elif item['type'] == ITEM_TYPE_TEXT:
         print_to_screen(value)
     elif item['type'] == ITEM_TYPE_SQL:
@@ -319,7 +333,19 @@ ERROR: Exit code {}
 ERROR: {}
 '''.format(e)
 
-        print_to_screen(output)
+        print_to_screen(colorize_sql_output(output))
+
+def colorize_nav(output):
+    return '\033[94m' + output + '\033[0m'
+
+def colorize_header(output):
+    return '\033[92m' + output + '\033[0m'
+
+def colorize_sql_output(output):
+    import re
+    output = re.sub(r'/\*', '\033[93m/*', output)
+    output = re.sub(r'\*/', '*/\033[0m', output)
+    return output
 
 def execute_raw_sql(sql):
     p = subprocess.Popen([
