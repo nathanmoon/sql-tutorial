@@ -12,7 +12,7 @@ GROUP BY l.name
 ;
 /*
 
-Gotham City doesn't not actually have any reviews, but it gets counted as 1 because
+Gotham City does not actually have any reviews, but it gets counted as 1 because
 the row exists.
 
 If you count the rating table by name, then it will only count the row if the 

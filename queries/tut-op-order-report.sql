@@ -1,5 +1,5 @@
 /*
-There are many tricks you can use to get reporting data using aggreates.  Here we
+There are many tricks you can use to get reporting data using aggregates.  Here we
 want to return lots more data about low ratings on items.  Take a look at each new
 column to make sure you understand why it works like it does.
 

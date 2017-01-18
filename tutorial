@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 import curses
 import os
@@ -112,7 +112,7 @@ the rows.  GROUP BY and DISTINCT are similar in a lot of ways.
             header('OUTER JOINs'),
             text('''
 Whereas a normal (INNER) JOIN is directionless (the order of the joins is
-unimportant), OUTER JOIN cares about the order.  OUTER JOIN is shorthad for
+unimportant), OUTER JOIN cares about the order.  OUTER JOIN is shorthand for
 LEFT OUTER JOIN, meaning the table on the left is the base.  There is a RIGHT
 OUTER JOIN as well, but I have honestly never used it in real life.  I thought
 I had a legitimate reason to use it once, but then discovered I could rewrite
